@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Orders — RetailOS{% endblock %}
+{% block page_name %}<i class="bi bi-receipt-cutoff me-2" style="color:#A78BFA"></i>Orders{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <div class="page-title">Order Management</div>
+    <p style="color:rgba(255,255,255,.45);font-size:.88rem;margin:0">{{ orders|length }} total orders</p>
+  </div>
+  <button class="btn btn-purple px-4" id="openNewOrder">
+    <i class="bi bi-cart-plus-fill me-2"></i>New Order
+  </button>
+</div>
+
+<div class="glass p-0 overflow-hidden">
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr>
+        <th>Order ID</th><th>Product</th><th>Category</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Date</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+      {% for o in orders %}
+      {% if o.products is mapping %}
+        {% set prod = o.products %}
+      {% elif o.products is iterable and o.products %}
+        {% set prod = o.products | first %}
+      {% else %}
+        {% set prod = {} %}
+      {% endif %}
+      <tr>
+        <td><span style="color:#A78BFA;font-weight:700">#{{ o.id }}</span></td>
+        <td style="font-weight:600">{{ prod.get('name', '—') }}</td>
+        <td><span style="background:rgba(124,58,237,.2);color:#C4B5FD;border-radius:8px;padding:3px 9px;font-size:.76rem">{{ prod.get('category', 'General') }}</span></td>
+        <td>{{ o.quantity }}</td>
+        <td style="color:rgba(255,255,255,.6)">₹{{ "%.2f"|format(prod.get('price', 0)|float) }}</td>
+        <td style="color:#34D399;font-weight:700">₹{{ o.total_price }}</td>
+        <td style="color:rgba(255,255,255,.45);font-size:.82rem">{{ o.created_at[:10] if o.created_at else '—' }}</td>
+        <td>
+          <div class="d-flex gap-1">
+            <a href="/invoice/{{ o.id }}" class="btn btn-sm btn-glass py-1 px-2" title="View Invoice">
+              <i class="bi bi-eye-fill" style="color:#A78BFA"></i>
+            </a>
+            <a href="/generate-pdf/{{ o.id }}" class="btn btn-sm btn-glass py-1 px-2" title="Download PDF">
+              <i class="bi bi-file-earmark-pdf-fill" style="color:#F87171"></i>
+            </a>
+            <button class="btn btn-sm btn-glass py-1 px-2" title="Read Aloud" onclick="speakOrder({{ o.id }})">
+              <i class="bi bi-megaphone-fill" style="color:#FBBF24"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if not orders %}
+  <div class="text-center py-5" style="color:rgba(255,255,255,.35)">
+    <i class="bi bi-cart-x" style="font-size:3rem;display:block;margin-bottom:10px"></i>
+    No orders yet. Create your first order!
+  </div>
+  {% endif %}
+</div>
+
+<audio id="voicePlayer" style="display:none" controls></audio>
+<div id="voiceStatus" style="position:fixed;bottom:24px;right:24px;z-index:999;display:none">
+  <div class="glass p-3 d-flex align-items-center gap-3" style="border-radius:14px;min-width:240px">
+    <div class="spinner-border spinner-border-sm text-warning" id="voiceSpinner"></div>
+    <span style="font-size:.88rem" id="voiceMsg">Loading audio…</span>
+    <button class="btn btn-sm btn-glass ms-auto" onclick="document.getElementById('voiceStatus').style.display='none'"><i class="bi bi-x"></i></button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showOverlay(id) {
+  if (window.fixOverlayInputs) fixOverlayInputs(document.getElementById(id));
+  document.getElementById(id).style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => {
+    const first = document.querySelector('#' + id + ' select, #' + id + ' input');
+    if (first) first.focus();
+  }, 50);
+}
+function hideOverlay(id) {
+  document.getElementById(id).style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('openNewOrder').addEventListener('click', function() {
+  document.getElementById('newOrderForm').reset();
+  document.getElementById('previewBox').style.display = 'none';
+  showOverlay('newOrderOverlay');
+});
+
+function updatePrice() {
+  const sel = document.getElementById('productSelect');
+  const opt = sel.options[sel.selectedIndex];
+  const price = parseFloat(opt.dataset.price || 0);
+  document.getElementById('unitPriceDisplay').textContent = '₹' + price.toFixed(2);
+  document.getElementById('qtyInput').max = opt.dataset.stock || 9999;
+  updateTotal();
+}
+function updateTotal() {
+  const sel = document.getElementById('productSelect');
+  const opt = sel.options[sel.selectedIndex];
+  const price = parseFloat(opt.dataset.price || 0);
+  const qty = parseInt(document.getElementById('qtyInput').value) || 0;
+  if (price && qty) {
+    document.getElementById('totalDisplay').textContent = '₹' + (price * qty).toFixed(2);
+    document.getElementById('previewBox').style.display = 'block';
+  }
+}
+function speakOrder(id) {
+  const status = document.getElementById('voiceStatus');
+  const msg = document.getElementById('voiceMsg');
+  const player = document.getElementById('voicePlayer');
+  status.style.display = 'block';
+  msg.textContent = 'Generating audio…';
+  fetch('/voice/order/' + id)
+    .then(r => { if (!r.ok) throw new Error('Failed'); return r.blob(); })
+    .then(blob => {
+      player.src = URL.createObjectURL(blob);
+      player.style.display = 'block';
+      player.play();
+      msg.textContent = 'Playing order summary…';
+      document.getElementById('voiceSpinner').style.display = 'none';
+    })
+    .catch(() => {
+      msg.textContent = 'Voice unavailable';
+      document.getElementById('voiceSpinner').style.display = 'none';
+    });
+}
+</script>
+
+<!-- NEW ORDER OVERLAY -->
+<div id="newOrderOverlay" style="display:none;position:fixed;inset:0;z-index:2000;align-items:center;justify-content:center;background:rgba(0,0,0,.7);">
+  <div style="background:#0f0c29;border:1px solid rgba(255,255,255,.15);border-radius:20px;width:100%;max-width:480px;margin:16px;">
+    <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;">
+      <h5 style="margin:0;font-weight:700"><i class="bi bi-cart-plus-fill me-2" style="color:#34D399"></i>Create New Order</h5>
+      <button onclick="hideOverlay('newOrderOverlay')" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:1.4rem;cursor:pointer;line-height:1">&times;</button>
+    </div>
+    <form method="POST" action="/orders/create" id="newOrderForm">
+      <div style="padding:24px">
+        <div class="mb-3">
+          <label class="form-label">Select Product</label>
+          <select name="product_id" id="productSelect" class="form-select" required onchange="updatePrice()">
+            <option value="">— Choose a product —</option>
+            {% for p in products %}
+            <option value="{{ p.id }}" data-price="{{ p.price }}" data-stock="{{ p.quantity }}">
+              {{ p.name }} (Stock: {{ p.quantity }}) — ₹{{ p.price }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Quantity</label>
+          <input type="number" name="quantity" id="qtyInput" class="form-control"
+                 placeholder="1" min="1" required oninput="updateTotal()" autocomplete="off"/>
+        </div>
+        <div id="previewBox" style="display:none;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px">
+          <div class="d-flex justify-content-between mb-1">
+            <span style="color:rgba(255,255,255,.6);font-size:.85rem">Unit Price:</span>
+            <span id="unitPriceDisplay" style="color:#FBBF24;font-weight:600"></span>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span style="color:rgba(255,255,255,.6);font-size:.85rem">Estimated Total:</span>
+            <span id="totalDisplay" style="color:#34D399;font-weight:800;font-size:1.1rem"></span>
+          </div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" class="btn btn-glass" onclick="hideOverlay('newOrderOverlay')">Cancel</button>
+        <button type="submit" class="btn btn-purple"><i class="bi bi-check-circle me-1"></i>Place Order</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

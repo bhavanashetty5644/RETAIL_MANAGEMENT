@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>{% block title %}RetailOS{% endblock %}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}"/>
+{% block extra_head %}{% endblock %}
+</head>
+<body>
+{% if session.get('user_id') and session.get('_st') %}
+<div id="sidebar">
+  <div class="brand">
+    <h4><i class="bi bi-bag-heart-fill me-1"></i> RetailOS</h4>
+    <small>Smart Retail Management</small>
+  </div>
+  <nav>
+    <a href="{{ url_for('dashboard.index') }}" class="{% if request.endpoint=='dashboard.index' %}active{% endif %}">
+      <i class="bi bi-grid-fill"></i> Dashboard
+    </a>
+
+    <div class="nav-section-label">PROCUREMENT</div>
+    <a href="{{ url_for('suppliers.index') }}" class="{% if request.endpoint and 'supplier' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-truck"></i> Suppliers
+    </a>
+    <a href="{{ url_for('procurement.index') }}" class="{% if request.endpoint and 'procurement' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-clipboard2-check-fill"></i> Purchase Orders
+    </a>
+
+    <div class="nav-section-label">INVENTORY</div>
+    <a href="{{ url_for('products.index') }}" class="{% if request.endpoint and 'product' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-box-seam-fill"></i> Products
+    </a>
+
+    <div class="nav-section-label">SALES</div>
+    <a href="{{ url_for('sales.index') }}" class="{% if request.endpoint and request.endpoint.startswith('sales') %}active{% endif %}">
+      <i class="bi bi-cart-check-fill"></i> Sales Dashboard
+    </a>
+    <a href="{{ url_for('orders.index') }}" class="{% if request.endpoint and 'order' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-receipt-cutoff"></i> Orders
+    </a>
+
+    <div class="nav-section-label">REPORTS</div>
+    <a href="{{ url_for('analytics.index') }}" class="{% if request.endpoint == 'analytics.index' %}active{% endif %}">
+      <i class="bi bi-bar-chart-fill"></i> Analytics
+    </a>
+
+    {% if session.get('role') in ('admin', 'superadmin') %}
+    <div class="nav-section-label">ADMIN</div>
+    <a href="{{ url_for('users.index') }}" class="{% if request.endpoint and 'users' in request.endpoint %}active{% endif %}">
+      <i class="bi bi-people-fill"></i>
+      {% if session.get('role') == 'superadmin' %}Manage All Users{% else %}Manage Staff{% endif %}
+    </a>
+    {% endif %}
+
+    <hr class="nav-divider"/>
+    <a href="{{ url_for('auth.logout') }}" class="logout-link">
+      <i class="bi bi-box-arrow-left"></i> Logout
+    </a>
+  </nav>
+  <div class="user-box d-flex align-items-center gap-2">
+    <div class="avatar">{{ session.get('user_name', 'U')[0]|upper }}</div>
+    <div>
+      <div class="user-name">{{ session.get('user_name', 'User') }}</div>
+      <div class="user-role">
+        {% if session.get('role') == 'superadmin' %}
+          <span style="color:#f59e0b;font-weight:700">⭐ Superadmin</span>
+        {% else %}
+          {{ session.get('role', 'staff') }}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div class="topbar">
+    <div class="d-flex align-items-center gap-3">
+      <button class="btn btn-sm btn-glass d-md-none" id="sidebarToggle"><i class="bi bi-list"></i></button>
+      <span class="topbar-title">{% block page_name %}{% endblock %}</span>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <span class="badge-role {% if session.get('role')=='superadmin' %}badge-superadmin{% elif session.get('role')=='admin' %}badge-admin{% else %}badge-staff{% endif %} px-3 py-2 rounded-pill">
+        {% if session.get('role') == 'superadmin' %}<i class="bi bi-star-fill me-1"></i>{% endif %}
+        {{ session.get('role', 'staff') }}
+      </span>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-sm btn-glass" title="Logout">
+        <i class="bi bi-box-arrow-left"></i>
+      </a>
+    </div>
+  </div>
+  <div class="page-wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="alert alert-glass {% if cat=='error' %}alert-danger-glass{% else %}alert-success-glass{% endif %} alert-dismissible fade show mb-3" role="alert">
+          <i class="bi {% if cat=='error' %}bi-exclamation-triangle-fill{% else %}bi-check-circle-fill{% endif %} me-2"></i>{{ msg }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+{% else %}
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+{% block extra_body %}{% endblock %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+// Mobile sidebar toggle
+const tog = document.getElementById('sidebarToggle');
+if(tog) tog.addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+
+// Fix: ensure modal inputs are always focusable after modal shows
+document.addEventListener('shown.bs.modal', function(e) {
+  const firstInput = e.target.querySelector('input:not([type=hidden]), select, textarea');
+  if (firstInput) {
+    setTimeout(() => firstInput.focus(), 50);
+  }
+});
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

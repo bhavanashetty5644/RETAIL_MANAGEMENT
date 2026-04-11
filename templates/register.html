@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Register — RetailOS{% endblock %}
+
+{% block auth_content %}
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;z-index:1">
+  <div style="width:100%;max-width:440px">
+
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="font-size:2.5rem;font-weight:900;background:linear-gradient(90deg,#A78BFA,#F9A8D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">
+        <i class="bi bi-bag-heart-fill" style="-webkit-text-fill-color:#A78BFA"></i> RetailOS
+      </div>
+      <div style="color:rgba(255,255,255,.4);font-size:.88rem;margin-top:4px">Create your account</div>
+    </div>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+      <div class="alert alert-glass {% if cat=='error' %}alert-danger-glass{% else %}alert-success-glass{% endif %} alert-dismissible fade show mb-3" role="alert">
+        <i class="bi {% if cat=='error' %}bi-exclamation-triangle-fill{% else %}bi-check-circle-fill{% endif %} me-2"></i>{{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    {% endwith %}
+
+    <!-- Card -->
+    <div class="glass p-4">
+      <form method="POST" action="/register">
+
+        <div class="mb-3">
+          <label class="form-label">Full Name</label>
+          <div class="input-group">
+            <span class="input-group-text" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-right:none;color:rgba(255,255,255,.5)">
+              <i class="bi bi-person-fill"></i>
+            </span>
+            <input type="text" name="name" class="form-control" placeholder="Your full name" required
+                   style="border-left:none!important"/>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Email Address</label>
+          <div class="input-group">
+            <span class="input-group-text" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-right:none;color:rgba(255,255,255,.5)">
+              <i class="bi bi-envelope-fill"></i>
+            </span>
+            <input type="email" name="email" class="form-control" placeholder="you@example.com" required
+                   style="border-left:none!important"/>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <div class="input-group">
+            <span class="input-group-text" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-right:none;color:rgba(255,255,255,.5)">
+              <i class="bi bi-lock-fill"></i>
+            </span>
+            <input type="password" name="password" id="pwdInput" class="form-control" placeholder="Min 6 characters" required minlength="6"
+                   style="border-left:none!important;border-right:none!important"/>
+            <button type="button" class="input-group-text" onclick="togglePwd()"
+                    style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-left:none;color:rgba(255,255,255,.5);cursor:pointer">
+              <i class="bi bi-eye-fill" id="eyeIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">Role</label>
+          <select name="role" class="form-select">
+            <option value="admin">👑 Admin — full access</option>
+            <option value="staff">👤 Staff — limited access</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-purple w-100 py-2" style="font-size:1rem;font-weight:700">
+          <i class="bi bi-person-plus-fill me-2"></i>Create Account
+        </button>
+
+      </form>
+
+      <div style="text-align:center;margin-top:18px;font-size:.88rem;color:rgba(255,255,255,.45)">
+        Already have an account?
+        <a href="/login" style="color:#A78BFA;font-weight:600;text-decoration:none"> Sign in</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePwd() {
+  const inp  = document.getElementById('pwdInput');
+  const icon = document.getElementById('eyeIcon');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    icon.className = 'bi bi-eye-slash-fill';
+  } else {
+    inp.type = 'password';
+    icon.className = 'bi bi-eye-fill';
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% block title %}Sales History — RetailOS{% endblock %}
+{% block page_name %}<i class="bi bi-cart-check-fill me-2" style="color:#34D399"></i>Sales History{% endblock %}
+
+{% block content %}
+<!-- STATS -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="glass stat-card" style="color:#34D399">
+      <div class="stat-icon" style="background:rgba(52,211,153,.2)"><i class="bi bi-receipt-cutoff" style="color:#34D399"></i></div>
+      <div class="stat-value">{{ stats.get('today_count', 0) }}</div>
+      <div class="stat-label">Sales Today</div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:4px">₹{{ "{:,.0f}".format(stats.get('today_revenue', 0)) }} revenue</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="glass stat-card" style="color:#FBBF24">
+      <div class="stat-icon" style="background:rgba(251,191,36,.2)"><i class="bi bi-currency-rupee" style="color:#FBBF24"></i></div>
+      <div class="stat-value" style="font-size:1.4rem">₹{{ "{:,.0f}".format(stats.get('total_revenue', 0)) }}</div>
+      <div class="stat-label">Total Revenue</div>
+      <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-top:4px">Aggregated total</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="glass stat-card" style="color:#A78BFA">
+      <div class="stat-icon" style="background:rgba(167,139,250,.2)"><i class="bi bi-cart-check" style="color:#A78BFA"></i></div>
+      <div class="stat-value">{{ stats.get('total_sales', 0) }}</div>
+      <div class="stat-label">Total Invoices</div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="glass stat-card" style="color:#F9A8D4">
+      <div class="stat-icon" style="background:rgba(249,168,212,.2)"><i class="bi bi-people-fill" style="color:#F9A8D4"></i></div>
+      <div class="stat-value">Many</div>
+      <div class="stat-label">Satisfied Customers</div>
+    </div>
+  </div>
+</div>
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <div class="page-title" style="font-size:1.2rem">Sales Records</div>
+    <p style="color:rgba(255,255,255,.45);font-size:.85rem;margin:0">{{ sales|length }} total transactions</p>
+  </div>
+  <button class="btn btn-purple px-4" onclick="showOverlay('newSaleOverlay')">
+    <i class="bi bi-plus-circle-fill me-2"></i>New Sale
+  </button>
+</div>
+
+<div class="glass p-0 overflow-hidden">
+  <div class="table-responsive">
+    <table class="glass-table">
+      <thead><tr>
+        <th>Invoice</th><th>Customer</th><th>Status</th><th>Payment</th><th>Amount</th><th>Date</th><th>Action</th>
+      </tr></thead>
+      <tbody>
+      {% for s in sales %}
+      <tr>
+        <td><span style="color:#A78BFA;font-weight:700;font-family:monospace">{{ s.get('invoice_no', 'N/A') }}</span></td>
+        <td style="font-weight:600">{{ s.get('customer_name', 'Guest') }}</td>
+        <td><span class="status-badge status-{{ s.get('status', 'paid') }}">{{ s.get('status', 'paid')|upper }}</span></td>
+        <td style="color:rgba(255,255,255,.6);font-size:.88rem">
+          {% if s.get('payment_mode') == 'cash' %}💵 Cash
+          {% elif s.get('payment_mode') == 'card' %}💳 Card
+          {% else %}📱 UPI{% endif %}
+        </td>
+        <td style="color:#FBBF24;font-weight:700">₹{{ "%.2f"|format(s.get('total', 0)|float) }}</td>
+        <td style="color:rgba(255,255,255,.45);font-size:.82rem">{{ s.get('created_at', '')[:10] }}</td>
+        <td>
+          <a href="/sales/{{ s.get('id') }}/invoice" class="btn btn-sm btn-glass py-1 px-2" title="View Invoice">
+            <i class="bi bi-receipt" style="color:#34D399"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if not sales %}
+  <div class="text-center py-5" style="color:rgba(255,255,255,.35)">
+    <i class="bi bi-cart-x" style="font-size:3rem;display:block;margin-bottom:10px"></i>
+    No sales found.
+  </div>
+  {% endif %}
+</div>
+
+<!-- NEW SALE OVERLAY -->
+<div id="newSaleOverlay" style="display:none;position:fixed;inset:0;z-index:2000;align-items:center;justify-content:center;background:rgba(0,0,0,.7);">
+  <div style="background:#0f0c29;border:1px solid rgba(255,255,255,.15);border-radius:20px;width:100%;max-width:900px;margin:16px;max-height:90vh;overflow-y:auto;position:relative;">
+    <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#0f0c29;z-index:10">
+      <h5 style="margin:0;font-weight:700"><i class="bi bi-cart-plus-fill me-2" style="color:#34D399"></i>Create New Sale</h5>
+      <button onclick="hideOverlay('newSaleOverlay')" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:1.4rem;cursor:pointer;line-height:1">&times;</button>
+    </div>
+    
+    <div style="padding:24px">
+      <div class="row g-4">
+        <!-- Customer Details -->
+        <div class="col-md-4">
+          <div class="glass-dark p-3 rounded-3 mb-3">
+            <h6 style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);margin-bottom:16px">Customer Info</h6>
+            <div class="mb-3">
+              <label class="form-label" style="font-size:.75rem">Customer Name</label>
+              <input type="text" id="custName" class="form-control form-control-sm" placeholder="Guest" autocomplete="off"/>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" style="font-size:.75rem">Phone</label>
+              <input type="text" id="custPhone" class="form-control form-control-sm" placeholder="Optional" autocomplete="off"/>
+            </div>
+            <div>
+              <label class="form-label" style="font-size:.75rem">Payment Mode</label>
+              <select id="payMode" class="form-select form-select-sm">
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="upi">UPI</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cart / Product Picker -->
+        <div class="col-md-8">
+          <div class="glass-dark p-3 rounded-3" style="min-height:300px">
+            <div class="row g-2 mb-3">
+              <div class="col-8">
+                <select id="prodPicker" class="form-select form-select-sm" onchange="addSelectedToCart()">
+                  <option value="">— Add Product —</option>
+                  {% for p in products %}
+                  <option value="{{ p.id }}" data-name="{{ p.name }}" data-price="{{ p.price }}" data-stock="{{ p.get('quantity', 0) }}">
+                    {{ p.name }} (₹{{ p.price }}) — Stock: {{ p.get('quantity', 0) }}
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-4 text-end">
+                <span style="font-size:.7rem;color:rgba(255,255,255,.3)">Select to add</span>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="table table-sm table-dark table-borderless" id="cartTable">
+                <thead style="font-size:.7rem;text-transform:uppercase;color:rgba(255,255,255,.3)">
+                  <tr><th>Product</th><th>Qty</th><th class="text-end">Total</th><th></th></tr>
+                </thead>
+                <tbody id="cartItems"></tbody>
+              </table>
+            </div>
+
+            <div id="emptyCart" class="text-center py-5" style="color:rgba(255,255,255,.2);font-size:.85rem">
+              <i class="bi bi-cart3 d-block mb-2" style="font-size:2rem"></i>Cart is empty
+            </div>
+          </div>
+
+          <!-- Summary & Submit -->
+          <div class="mt-4 glass-dark p-3 rounded-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div style="font-size:1.4rem;font-weight:800"><span style="font-size:.9rem;color:rgba(255,255,255,.4);margin-right:10px">Total Amount:</span> <span style="color:#34D399">₹<span id="cartTotal">0.00</span></span></div>
+              <button class="btn btn-purple px-4" onclick="submitSale()">
+                <i class="bi bi-check-circle-fill me-2"></i>Place Order & Generate Invoice
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let cart = [];
+
+function showOverlay(id) {
+  document.getElementById(id).style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function hideOverlay(id) {
+  document.getElementById(id).style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function addSelectedToCart() {
+  const sel = document.getElementById('prodPicker');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt.value) return;
+
+  const id = opt.value;
+  const name = opt.dataset.name;
+  const price = parseFloat(opt.dataset.price);
+  const stock = parseInt(opt.dataset.stock);
+
+  if (stock <= 0) { alert('Out of stock'); sel.selectedIndex = 0; return; }
+
+  const existing = cart.find(i => i.product_id === id);
+  if (existing) {
+    if (existing.quantity < stock) existing.quantity++;
+    else alert('Max stock reached');
+  } else {
+    cart.push({ product_id: id, name, unit_price: price, quantity: 1, total_price: price });
+  }
+  
+  sel.selectedIndex = 0;
+  renderCart();
+}
+
+function renderCart() {
+  const list = document.getElementById('cartItems');
+  const empty = document.getElementById('emptyCart');
+  list.innerHTML = '';
+  
+  if (cart.length === 0) {
+    empty.style.display = 'block';
+    document.getElementById('cartTotal').textContent = '0.00';
+    return;
+  }
+  empty.style.display = 'none';
+
+  let total = 0;
+  cart.forEach((item, idx) => {
+    item.total_price = item.quantity * item.unit_price;
+    total += item.total_price;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:600">${item.name}</td>
+      <td>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-sm btn-glass p-0" style="width:20px;height:20px" onclick="updateQty(${idx},-1)">-</button>
+          <span>${item.quantity}</span>
+          <button class="btn btn-sm btn-glass p-0" style="width:20px;height:20px" onclick="updateQty(${idx},1)">+</button>
+        </div>
+      </td>
+      <td class="text-end" style="color:#34D399;font-weight:700">₹${item.total_price.toFixed(2)}</td>
+      <td class="text-end"><button class="btn btn-sm btn-link text-danger p-0" onclick="removeItem(${idx})"><i class="bi bi-x-circle"></i></button></td>
+    `;
+    list.appendChild(tr);
+  });
+  document.getElementById('cartTotal').textContent = total.toFixed(2);
+}
+
+function updateQty(idx, delta) {
+  const item = cart[idx];
+  const opt = Array.from(document.querySelectorAll('#prodPicker option')).find(o => o.value === item.product_id);
+  const stock = parseInt(opt.dataset.stock);
+  
+  if (delta > 0 && item.quantity >= stock) { alert('Max stock'); return; }
+  item.quantity += delta;
+  if (item.quantity <= 0) cart.splice(idx, 1);
+  renderCart();
+}
+
+function removeItem(idx) {
+  cart.splice(idx, 1);
+  renderCart();
+}
+
+function submitSale() {
+  if (cart.length === 0) { alert('Cart is empty'); return; }
+  
+  const data = {
+    customer_name: document.getElementById('custName').value || 'Guest',
+    customer_phone: document.getElementById('custPhone').value,
+    payment_mode: document.getElementById('payMode').value,
+    items: cart.map(i => ({
+      product_id: i.product_id,
+      product_name: i.name,
+      quantity: i.quantity,
+      unit_price: i.unit_price,
+      total_price: i.total_price
+    })),
+    total: parseFloat(document.getElementById('cartTotal').textContent)
+  };
+
+  fetch('/sales/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      window.location.href = '/sales/' + res.sale_id + '/invoice';
+    } else {
+      alert('Error: ' + res.error);
+    }
+  })
+  .catch(e => alert('System error occurred'));
+}
+</script>
+{% endblock %}

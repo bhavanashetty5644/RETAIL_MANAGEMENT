@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Invoice {{ sale.get('invoice_no', 'N/A') }} — RetailOS{% endblock %}
+{% block page_name %}<i class="bi bi-receipt me-2" style="color:#34D399"></i>Invoice{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 no-print">
+  <a href="/sales" class="btn btn-glass"><i class="bi bi-arrow-left me-1"></i> Back to Sales</a>
+  <div class="d-flex gap-2">
+    <button onclick="window.print()" class="btn btn-purple"><i class="bi bi-printer-fill me-2"></i>Print Invoice</button>
+    <a href="/sales/{{ sale.get('id') }}/invoice" class="btn btn-glass"><i class="bi bi-download me-1"></i>Download</a>
+  </div>
+</div>
+
+<div class="glass p-0 overflow-hidden invoice-box" style="max-width:800px;margin:0 auto">
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,rgba(124,58,237,.4),rgba(236,72,153,.2));padding:32px 36px;">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h2 style="font-weight:900;font-size:2rem;background:linear-gradient(90deg,#A78BFA,#F9A8D4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin:0">RetailOS</h2>
+        <div style="color:rgba(255,255,255,.6);font-size:.85rem;margin-top:2px">Smart Retail Management</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:.75rem;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.08em">Invoice</div>
+        <div style="font-size:1.5rem;font-weight:800;font-family:monospace;color:#34D399">{{ sale.get('invoice_no', 'N/A') }}</div>
+        <div style="font-size:.8rem;color:rgba(255,255,255,.5);margin-top:4px">{{ sale.get('created_at', '')[:10] if sale.get('created_at') else '' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:28px 36px">
+    <!-- Billed To / Payment -->
+    <div class="row g-4 mb-4">
+      <div class="col-sm-6">
+        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);margin-bottom:8px">Billed To</div>
+        <div style="font-weight:700;font-size:1.1rem">{{ sale.get('customer_name', 'Guest') }}</div>
+        {% if sale.get('customer_phone') %}<div style="color:rgba(255,255,255,.6);font-size:.85rem"><i class="bi bi-telephone me-1"></i>{{ sale.get('customer_phone') }}</div>{% endif %}
+        {% if sale.get('customer_email') %}<div style="color:rgba(255,255,255,.6);font-size:.85rem"><i class="bi bi-envelope me-1"></i>{{ sale.get('customer_email') }}</div>{% endif %}
+        {% if sale.get('customer_address') %}<div style="color:rgba(255,255,255,.5);font-size:.82rem;margin-top:4px">{{ sale.get('customer_address') }}</div>{% endif %}
+      </div>
+      <div class="col-sm-6" style="text-align:right">
+        <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);margin-bottom:8px">Payment Details</div>
+        <div>
+          <span class="status-badge status-{{ sale.get('status', 'paid') }}">{{ sale.get('status', 'paid')|upper }}</span>
+        </div>
+        <div style="color:rgba(255,255,255,.6);font-size:.85rem;margin-top:8px">
+          Mode:
+          {% if sale.get('payment_mode') == 'cash' %}💵 Cash
+          {% elif sale.get('payment_mode') == 'card' %}💳 Card
+          {% else %}📱 UPI{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="table-responsive mb-4">
+      <table class="glass-table" style="border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden">
+        <thead><tr>
+          <th>#</th><th>Product</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Total</th>
+        </tr></thead>
+        <tbody>
+        {% for item in sale.get('items', []) %}
+        <tr>
+          <td style="color:rgba(255,255,255,.4)">{{ loop.index }}</td>
+          <td style="font-weight:600">{{ item.get('product_name', '—') }}</td>
+          <td style="text-align:right">{{ item.get('quantity', 0) }}</td>
+          <td style="text-align:right;color:rgba(255,255,255,.6)">₹{{ "%.2f"|format(item.get('unit_price', 0)|float) }}</td>
+          <td style="text-align:right;font-weight:700;color:#34D399">₹{{ "%.2f"|format(item.get('total_price', 0)|float) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Totals -->
+    <div class="d-flex justify-content-end">
+      <div style="min-width:280px">
+        <div class="glass-dark p-4 rounded-3">
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:rgba(255,255,255,.6)">Subtotal</span>
+            <span style="font-weight:600">₹{{ "%.2f"|format(sale.get('subtotal', 0)|float) }}</span>
+          </div>
+          {% if sale.get('discount') and sale.get('discount')|float > 0 %}
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:rgba(255,255,255,.6)">Discount</span>
+            <span style="color:#F87171;font-weight:600">- ₹{{ "%.2f"|format(sale.get('discount', 0)|float) }}</span>
+          </div>
+          {% endif %}
+          <div class="d-flex justify-content-between mb-2">
+            <span style="color:rgba(255,255,255,.6)">GST / Tax</span>
+            <span style="color:#FBBF24;font-weight:600">₹{{ "%.2f"|format(sale.get('tax', 0)|float) }}</span>
+          </div>
+          <hr style="border-color:rgba(255,255,255,.15)"/>
+          <div class="d-flex justify-content-between">
+            <span style="font-weight:800;font-size:1.05rem">TOTAL</span>
+            <span style="color:#34D399;font-weight:900;font-size:1.4rem">₹{{ "%.2f"|format(sale.get('total', 0)|float) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if sale.notes %}
+    <div class="mt-4 p-3" style="background:rgba(255,255,255,.05);border-radius:10px;border-left:3px solid rgba(167,139,250,.5)">
+      <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-bottom:4px">NOTES</div>
+      <div style="color:rgba(255,255,255,.7);font-size:.88rem">{{ sale.notes }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="mt-4 pt-4" style="border-top:1px solid rgba(255,255,255,.1);text-align:center;color:rgba(255,255,255,.3);font-size:.78rem">
+      Thank you for your business! · Generated by RetailOS
+    </div>
+  </div>
+</div>
+{% endblock %}

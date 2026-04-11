@@ -1,0 +1,292 @@
+/* ── RetailOS v2 — Main CSS ─────────────────────────────────────── */
+:root {
+  --purple:       #7C3AED;
+  --purple-light: #A78BFA;
+  --pink:         #EC4899;
+  --glass:        rgba(255,255,255,.08);
+  --glass-hover:  rgba(255,255,255,.14);
+  --glass-border: rgba(255,255,255,.12);
+  --sidebar-w:    240px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #0a0718;
+  color: #fff;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Background blobs — z-index 0 so they NEVER block inputs */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: .35;
+  z-index: 0;
+  pointer-events: none;
+}
+body::before {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, #7C3AED, transparent);
+  top: -100px; left: -100px;
+  animation: float1 8s ease-in-out infinite;
+}
+body::after {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, #EC4899, transparent);
+  bottom: -80px; right: -80px;
+  animation: float2 10s ease-in-out infinite;
+}
+@keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,80px)} }
+@keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-50px,-60px)} }
+
+/* glassmorphism */
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+.glass-dark {
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+/* ── Layout ──────────────────────────────────── */
+#sidebar {
+  position: fixed; left: 0; top: 0;
+  width: var(--sidebar-w); height: 100vh;
+  background: rgba(10,7,24,.85);
+  backdrop-filter: blur(24px);
+  border-right: 1px solid var(--glass-border);
+  display: flex; flex-direction: column;
+  z-index: 100;
+  overflow-y: auto;
+}
+#main {
+  margin-left: var(--sidebar-w);
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+.page-wrap { padding: 28px 32px; }
+
+/* ── Sidebar ─────────────────────────────────── */
+.brand { padding: 24px 20px 16px; border-bottom: 1px solid var(--glass-border); }
+.brand h4 { font-size: 1.25rem; font-weight: 800; background: linear-gradient(90deg,#fff,#A78BFA); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.brand small { color: rgba(255,255,255,.4); font-size: .72rem; }
+nav { padding: 12px 12px; flex: 1; }
+nav a {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 10px;
+  color: rgba(255,255,255,.65); text-decoration: none;
+  font-size: .88rem; font-weight: 500;
+  transition: .2s;
+  margin-bottom: 2px;
+}
+nav a:hover { background: var(--glass); color: #fff; }
+nav a.active { background: linear-gradient(135deg,rgba(124,58,237,.35),rgba(236,72,153,.2)); color: #fff; border: 1px solid rgba(124,58,237,.3); }
+nav a i { font-size: 1rem; width: 18px; text-align: center; flex-shrink:0; }
+.nav-section-label { font-size: .65rem; font-weight: 700; letter-spacing: .08em; color: rgba(255,255,255,.3); text-transform: uppercase; padding: 12px 14px 4px; }
+.nav-divider { border-color: var(--glass-border); margin: 8px 0; }
+.logout-link { color: rgba(239,68,68,.7) !important; }
+.logout-link:hover { background: rgba(239,68,68,.1) !important; color: #F87171 !important; }
+.user-box { padding: 14px 16px; border-top: 1px solid var(--glass-border); margin-top: auto; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--purple), var(--pink)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .95rem; flex-shrink: 0; }
+.user-name { font-size: .85rem; font-weight: 600; }
+.user-role { font-size: .72rem; color: rgba(255,255,255,.45); text-transform: capitalize; }
+
+/* ── Topbar ──────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 32px;
+  background: rgba(10,7,24,.6);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
+  position: sticky; top: 0;
+  z-index: 50;
+}
+.topbar-title { font-weight: 700; font-size: 1rem; }
+
+/* ── Dashboard cards ─────────────────────────── */
+.stat-card {
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 22px 24px;
+  transition: .25s;
+}
+.stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,.25); }
+.stat-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 14px; }
+.stat-value { font-size: 2rem; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+.stat-label { font-size: .78rem; color: rgba(255,255,255,.5); font-weight: 500; text-transform: uppercase; letter-spacing: .05em; }
+
+/* ── Tables ──────────────────────────────────── */
+.glass-table { width: 100%; border-collapse: collapse; }
+.glass-table thead th {
+  padding: 13px 16px;
+  font-size: .72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em;
+  color: rgba(255,255,255,.45);
+  border-bottom: 1px solid var(--glass-border);
+  white-space: nowrap;
+  background: rgba(255,255,255,.04);
+}
+.glass-table tbody tr:hover { background: rgba(255,255,255,.06); }
+.glass-table tbody td {
+  padding: 13px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  font-size: .88rem;
+  vertical-align: middle;
+}
+
+/* ── Forms — IMPORTANT: ensure inputs are always interactive ── */
+.form-control, .form-select {
+  background: rgba(255,255,255,.1) !important;
+  border: 1px solid rgba(255,255,255,.2) !important;
+  color: #fff !important;
+  border-radius: 10px !important;
+  position: relative;
+  z-index: 1;
+}
+.form-control::placeholder { color: rgba(255,255,255,.4) !important; }
+.form-control:focus, .form-select:focus {
+  background: rgba(255,255,255,.15) !important;
+  box-shadow: 0 0 0 3px rgba(124,58,237,.3) !important;
+  border-color: var(--purple-light) !important;
+  outline: none;
+  z-index: 2;
+}
+.form-select option { background: #1a1040; color: #fff; }
+.form-label { color: rgba(255,255,255,.85); font-size: .85rem; font-weight: 500; margin-bottom: 5px; }
+textarea.form-control { color: #fff !important; }
+
+/* ── Buttons ─────────────────────────────────── */
+.btn-glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: #fff;
+  border-radius: 10px;
+  transition: .2s;
+}
+.btn-glass:hover { background: var(--glass-hover); color: #fff; transform: translateY(-1px); }
+.btn-purple {
+  background: linear-gradient(135deg, var(--purple), #9333EA);
+  border: none; color: #fff;
+  border-radius: 10px; font-weight: 600;
+  transition: .2s;
+}
+.btn-purple:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(124,58,237,.5); color: #fff; }
+
+/* ── Badges ──────────────────────────────────── */
+.badge-role { padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 600; text-transform: uppercase; }
+.badge-admin      { background: linear-gradient(135deg, #7C3AED, #EC4899); }
+.badge-staff      { background: rgba(255,255,255,.15); }
+.badge-superadmin { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+
+/* ── Alerts ──────────────────────────────────── */
+.alert-glass { backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 12px; color: #fff; }
+.alert-success-glass { background: rgba(16,185,129,.2); border-color: rgba(16,185,129,.4); }
+.alert-danger-glass  { background: rgba(239,68,68,.2);  border-color: rgba(239,68,68,.4); }
+
+/* ── Modals — CRITICAL: high z-index and ensure interactivity ── */
+.modal {
+  z-index: 1055 !important;
+}
+.modal-backdrop {
+  z-index: 1050 !important;
+}
+.modal-dialog {
+  position: relative;
+  z-index: 1060 !important;
+}
+.modal-content {
+  background: rgba(15,12,41,.95) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: 20px !important;
+  color: #fff;
+  position: relative;
+  z-index: 1061 !important;
+  /* Ensure all child elements are interactive */
+  pointer-events: auto !important;
+}
+.modal-content * {
+  pointer-events: auto !important;
+}
+.modal-content input,
+.modal-content select,
+.modal-content textarea,
+.modal-content button {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 2000 !important;
+  -webkit-user-select: auto !important;
+  user-select: auto !important;
+  isolation: isolate;
+}
+.modal-header { border-bottom: 1px solid var(--glass-border) !important; }
+.modal-footer { border-top:   1px solid var(--glass-border) !important; }
+.btn-close { filter: invert(1) opacity(.7); }
+
+/* ── Scrollbar ───────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 10px; }
+
+/* ── Page title ──────────────────────────────── */
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #fff, #C4B5FD);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Login page ──────────────────────────────── */
+.auth-wrap {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px 16px;
+  position: relative;
+  z-index: 1;
+}
+.auth-card {
+  width: 100%; max-width: 420px;
+  background: rgba(255,255,255,.07);
+  backdrop-filter: blur(28px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 40px 36px;
+  position: relative;
+  z-index: 2;
+}
+.auth-card input {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto !important;
+}
+
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 768px) {
+  #sidebar {
+    transform: translateX(-100%);
+    transition: .3s;
+    z-index: 200;
+  }
+  #sidebar.open { transform: translateX(0); }
+  #main { margin-left: 0; }
+  .page-wrap { padding: 20px 16px; }
+  .topbar { padding: 12px 16px; }
+}

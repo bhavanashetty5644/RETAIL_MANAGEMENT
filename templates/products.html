@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Products — RetailOS{% endblock %}
+{% block page_name %}<i class="bi bi-box-seam-fill me-2" style="color:#A78BFA"></i>Inventory{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <div class="page-title">Product Inventory</div>
+    <p style="color:rgba(255,255,255,.45);font-size:.88rem;margin:0">{{ products|length }} products in store</p>
+  </div>
+  <button class="btn btn-purple px-4" id="openAddProduct">
+    <i class="bi bi-plus-circle-fill me-2"></i>Add Product
+  </button>
+</div>
+
+<div class="glass p-3 mb-4 d-flex align-items-center gap-3">
+  <i class="bi bi-search" style="color:rgba(255,255,255,.38)"></i>
+  <input type="text" id="productSearch" class="form-control border-0 bg-transparent shadow-none p-0"
+         placeholder="Search by name, SKU or category…" style="color:#fff;outline:none"/>
+</div>
+
+<div class="glass p-0 overflow-hidden">
+  <div class="table-responsive">
+    <table class="glass-table" id="productTable">
+      <thead><tr>
+        <th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+      {% for p in products %}
+      <tr>
+        <td style="color:rgba(255,255,255,.35);font-size:.78rem">#{{ p.id }}</td>
+        <td style="font-weight:600">{{ p.name }}</td>
+        <td>
+          <span style="background:rgba(124,58,237,.22);color:#C4B5FD;border-radius:8px;padding:3px 9px;font-size:.76rem">
+            {{ p.category or 'General' }}
+          </span>
+        </td>
+        <td style="color:#FBBF24;font-weight:600">₹{{ "%.2f"|format(p.price|float) }}</td>
+        <td>
+          {% if p.quantity == 0 %}
+            <span style="color:#F87171;font-weight:600"><i class="bi bi-x-circle-fill me-1"></i>Out of Stock</span>
+          {% elif p.quantity <= 5 %}
+            <span style="color:#FBBF24;font-weight:600"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ p.quantity }} (Low)</span>
+          {% else %}
+            <span style="color:#34D399;font-weight:600"><i class="bi bi-check-circle-fill me-1"></i>{{ p.quantity }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-glass" title="Edit" onclick="openEditProduct({{ p|tojson }})">
+              <i class="bi bi-pencil-fill" style="color:#A78BFA"></i>
+            </button>
+            {% if session.get('role') in ('admin','superadmin') %}
+            <form method="POST" action="/products/delete/{{ p.id }}"
+                  onsubmit="return confirm('Delete {{ p.name }}?')">
+              <button class="btn btn-sm btn-glass" title="Delete">
+                <i class="bi bi-trash-fill" style="color:#F87171"></i>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not products %}
+      <tr>
+        <td colspan="6" class="text-center py-5" style="color:rgba(255,255,255,.3)">
+          <i class="bi bi-inbox" style="font-size:3rem;display:block;margin-bottom:10px"></i>
+          No products yet. Add your first product!
+        </td>
+      </tr>
+      {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+liveSearch('productSearch', 'productTable');
+
+function showOverlay(id) {
+  if (window.fixOverlayInputs) fixOverlayInputs(document.getElementById(id));
+  document.getElementById(id).style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => {
+    const first = document.querySelector('#' + id + ' input:not([type=hidden])');
+    if (first) first.focus();
+  }, 50);
+}
+function hideOverlay(id) {
+  document.getElementById(id).style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.getElementById('openAddProduct').addEventListener('click', function() {
+  // Clear form
+  document.getElementById('addProductForm').reset();
+  showOverlay('addProductOverlay');
+});
+
+function openEditProduct(p) {
+  document.getElementById('ep_name').value     = p.name     || '';
+  document.getElementById('ep_price').value    = p.price    || '';
+  document.getElementById('ep_quantity').value = p.quantity || '';
+  const cat = document.getElementById('ep_category');
+  for (let o of cat.options) o.selected = (o.value === (p.category || 'General'));
+  document.getElementById('editProductForm').action = '/products/edit/' + p.id;
+  showOverlay('editProductOverlay');
+}
+</script>
+
+<!-- ADD PRODUCT OVERLAY -->
+<div id="addProductOverlay" style="display:none;position:fixed;inset:0;z-index:2000;align-items:center;justify-content:center;background:rgba(0,0,0,.7);">
+  <div style="background:#0f0c29;border:1px solid rgba(255,255,255,.15);border-radius:20px;width:100%;max-width:480px;margin:16px;">
+    <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;">
+      <h5 style="margin:0;font-weight:700"><i class="bi bi-plus-circle-fill me-2" style="color:#34D399"></i>Add New Product</h5>
+      <button onclick="hideOverlay('addProductOverlay')" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:1.4rem;cursor:pointer;line-height:1">&times;</button>
+    </div>
+    <form method="POST" action="/products/add" id="addProductForm">
+      <div style="padding:24px">
+        <div class="mb-3">
+          <label class="form-label">Product Name *</label>
+          <input type="text" name="name" class="form-control" placeholder="e.g. Basmati Rice 5kg" required autocomplete="off"/>
+        </div>
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="form-label">Price (₹) *</label>
+            <input type="number" name="price" class="form-control" placeholder="350.00" step="0.01" min="0" required autocomplete="off"/>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Quantity *</label>
+            <input type="number" name="quantity" class="form-control" placeholder="50" min="0" required autocomplete="off"/>
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="form-label">Category</label>
+          <select name="category" class="form-select">
+            <option value="General">General</option>
+            <option value="Groceries">Groceries</option>
+            <option value="Dairy">Dairy</option>
+            <option value="Beverages">Beverages</option>
+            <option value="Snacks">Snacks</option>
+            <option value="Personal Care">Personal Care</option>
+            <option value="Cleaning">Cleaning</option>
+            <option value="Electronics">Electronics</option>
+          </select>
+        </div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" class="btn btn-glass" onclick="hideOverlay('addProductOverlay')">Cancel</button>
+        <button type="submit" class="btn btn-purple"><i class="bi bi-plus-circle me-1"></i>Add Product</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT PRODUCT OVERLAY -->
+<div id="editProductOverlay" style="display:none;position:fixed;inset:0;z-index:2000;align-items:center;justify-content:center;background:rgba(0,0,0,.7);">
+  <div style="background:#0f0c29;border:1px solid rgba(255,255,255,.15);border-radius:20px;width:100%;max-width:480px;margin:16px;">
+    <div style="padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;">
+      <h5 style="margin:0;font-weight:700"><i class="bi bi-pencil-fill me-2" style="color:#A78BFA"></i>Edit Product</h5>
+      <button onclick="hideOverlay('editProductOverlay')" style="background:none;border:none;color:rgba(255,255,255,.6);font-size:1.4rem;cursor:pointer;line-height:1">&times;</button>
+    </div>
+    <form method="POST" id="editProductForm">
+      <div style="padding:24px">
+        <div class="mb-3">
+          <label class="form-label">Product Name *</label>
+          <input type="text" name="name" id="ep_name" class="form-control" required autocomplete="off"/>
+        </div>
+        <div class="row g-3">
+          <div class="col-6">
+            <label class="form-label">Price (₹) *</label>
+            <input type="number" name="price" id="ep_price" class="form-control" step="0.01" min="0" required autocomplete="off"/>
+          </div>
+          <div class="col-6">
+            <label class="form-label">Quantity *</label>
+            <input type="number" name="quantity" id="ep_quantity" class="form-control" min="0" required autocomplete="off"/>
+          </div>
+        </div>
+        <div class="mt-3">
+          <label class="form-label">Category</label>
+          <select name="category" id="ep_category" class="form-select">
+            <option value="General">General</option>
+            <option value="Groceries">Groceries</option>
+            <option value="Dairy">Dairy</option>
+            <option value="Beverages">Beverages</option>
+            <option value="Snacks">Snacks</option>
+            <option value="Personal Care">Personal Care</option>
+            <option value="Cleaning">Cleaning</option>
+            <option value="Electronics">Electronics</option>
+          </select>
+        </div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" class="btn btn-glass" onclick="hideOverlay('editProductOverlay')">Cancel</button>
+        <button type="submit" class="btn btn-purple"><i class="bi bi-check-circle me-1"></i>Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

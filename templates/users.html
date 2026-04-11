@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Users — RetailOS{% endblock %}
+{% block page_name %}<i class="bi bi-people-fill me-2" style="color:#A78BFA"></i>
+  {% if session.get('role') == 'superadmin' %}User Management{% else %}Staff Management{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <div class="page-title">
+      {% if session.get('role') == 'superadmin' %}All Users{% else %}Team Staff{% endif %}
+    </div>
+    <p style="color:rgba(255,255,255,.45);font-size:.88rem;margin:0">{{ users|length }} users</p>
+  </div>
+  <button class="btn btn-purple px-4" data-bs-toggle="modal" data-bs-target="#addUserModal">
+    <i class="bi bi-person-plus-fill me-2"></i>Add {% if session.get('role') == 'superadmin' %}User{% else %}Staff{% endif %}
+  </button>
+</div>
+
+{% if session.get('role') == 'superadmin' %}
+<!-- Superadmin role summary -->
+<div class="glass p-3 mb-4 d-flex gap-3 flex-wrap">
+  <div style="font-size:.82rem;color:rgba(255,255,255,.6)">
+    <i class="bi bi-star-fill me-1" style="color:#f59e0b"></i><strong style="color:#f59e0b">Superadmin</strong> — You have full control over all users, admins, and permissions.
+  </div>
+  <div class="ms-auto d-flex gap-3" style="font-size:.8rem;color:rgba(255,255,255,.5)">
+    <span><i class="bi bi-star-fill me-1" style="color:#f59e0b"></i>{{ all_users | selectattr('role','equalto','superadmin') | list | length }} Superadmin</span>
+    <span><i class="bi bi-shield-fill-check me-1" style="color:#A78BFA"></i>{{ all_users | selectattr('role','equalto','admin') | list | length }} Admins</span>
+    <span><i class="bi bi-person-fill me-1" style="color:#60A5FA"></i>{{ all_users | selectattr('role','equalto','staff') | list | length }} Staff</span>
+  </div>
+</div>
+{% endif %}
+
+<!-- Search -->
+<div class="glass p-3 mb-4 d-flex align-items-center gap-3">
+  <i class="bi bi-search" style="color:rgba(255,255,255,.4)"></i>
+  <input type="text" id="userSearch" class="form-control border-0 bg-transparent shadow-none p-0"
+         placeholder="Search by name, email or role..." style="color:#fff;outline:none"/>
+</div>
+
+<div class="glass p-0 overflow-hidden">
+  <div class="table-responsive">
+    <table class="glass-table" id="userTable">
+      <thead><tr>
+        <th>ID</th><th>User</th><th>Email</th><th>Role</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+      {% for u in users %}
+      <tr>
+        <td style="color:rgba(255,255,255,.4);font-size:.8rem">#{{ u.id }}</td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;flex-shrink:0;background:linear-gradient(135deg,{% if u.role == 'superadmin' %}#f59e0b,#ef4444{% elif u.role == 'admin' %}#7C3AED,#EC4899{% else %}#0EA5E9,#06B6D4{% endif %})">
+              {{ u.name[0]|upper if u.name else '?' }}
+            </div>
+            <span style="font-weight:600">{{ u.name }}
+              {% if u.id == current_uid %}
+                <span style="background:rgba(124,58,237,.25);color:#C4B5FD;padding:2px 8px;border-radius:20px;font-size:.7rem;font-weight:600;margin-left:4px">You</span>
+              {% endif %}
+            </span>
+          </div>
+        </td>
+        <td style="color:rgba(255,255,255,.65)">{{ u.email }}</td>
+        <td>
+          <span class="badge-role {% if u.role == 'superadmin' %}badge-superadmin{% elif u.role == 'admin' %}badge-admin{% else %}badge-staff{% endif %}">
+            <i class="bi {% if u.role == 'superadmin' %}bi-star-fill{% elif u.role == 'admin' %}bi-shield-fill-check{% else %}bi-person-fill{% endif %} me-1"></i>
+            {{ u.role|capitalize }}
+          </span>
+        </td>
+        <td>
+          <div class="d-flex gap-1 flex-wrap">
+            {% if u.role != 'superadmin' %}
+            <button class="btn btn-sm btn-glass py-1 px-2" title="Edit"
+                    data-bs-toggle="modal" data-bs-target="#editUserModal{{ u.id }}">
+              <i class="bi bi-pencil-fill" style="color:#A78BFA"></i>
+            </button>
+            {% endif %}
+
+            {% if session.get('role') == 'superadmin' %}
+              {% if u.role == 'staff' and u.id != current_uid %}
+              <form method="POST" action="/users/promote/{{ u.id }}" style="display:inline"
+                    onsubmit="return confirm('Promote {{ u.name }} to Admin?')">
+                <button type="submit" class="btn btn-sm btn-glass py-1 px-2" title="Promote to Admin">
+                  <i class="bi bi-arrow-up-circle-fill" style="color:#34D399"></i>
+                </button>
+              </form>
+              {% elif u.get('role') in ['admin', 'superadmin'] and u.get('id') != current_uid %}
+              <form method="POST" action="/users/demote/{{ u.id }}" style="display:inline"
+                    onsubmit="return confirm('Demote {{ u.name }} to Staff?')">
+                <button type="submit" class="btn btn-sm btn-glass py-1 px-2" title="Demote to Staff">
+                  <i class="bi bi-arrow-down-circle-fill" style="color:#FBBF24"></i>
+                </button>
+              </form>
+              {% endif %}
+            {% endif %}
+
+            {% if u.id != current_uid and u.role != 'superadmin' %}
+              {% if session.get('role') == 'superadmin' or u.role == 'staff' %}
+              <form method="POST" action="/users/delete/{{ u.id }}" style="display:inline"
+                    onsubmit="return confirm('Delete user {{ u.name }}?')">
+                <button type="submit" class="btn btn-sm btn-glass py-1 px-2" title="Delete">
+                  <i class="bi bi-trash3-fill" style="color:#F87171"></i>
+                </button>
+              </form>
+              {% endif %}
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if not users %}
+  <div class="text-center py-5" style="color:rgba(255,255,255,.35)">
+    <i class="bi bi-people" style="font-size:3rem;display:block;margin-bottom:10px"></i>
+    No users found.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Edit Modals - OUTSIDE the table -->
+{% for u in users %}
+{% if u.role != 'superadmin' %}
+<div class="modal fade" id="editUserModal{{ u.id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil-fill me-2" style="color:#A78BFA"></i>Edit: {{ u.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="/users/edit/{{ u.id }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <input type="text" name="name" class="form-control" value="{{ u.name }}" required/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ u.email }}" required/>
+          </div>
+          {% if session.get('role') == 'superadmin' %}
+          <div class="mb-3">
+            <label class="form-label">Role</label>
+            <select name="role" class="form-select">
+              <option value="staff" {% if u.role == 'staff' %}selected{% endif %}>Staff</option>
+              <option value="admin" {% if u.get('role') == 'admin' %}selected{% endif %}>Admin</option>
+              <option value="superadmin" {% if u.get('role') == 'superadmin' %}selected{% endif %}>Superadmin</option>
+            </select>
+          </div>
+          {% endif %}
+          <div class="mb-1">
+            <label class="form-label">New Password <small style="color:rgba(255,255,255,.4)">(leave blank to keep current)</small></label>
+            <input type="password" name="password" class="form-control" placeholder="Min 6 characters" minlength="6"/>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-purple"><i class="bi bi-check-circle me-1"></i>Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-plus-fill me-2" style="color:#34D399"></i>
+          Add {% if session.get('role') == 'superadmin' %}New User{% else %}New Staff{% endif %}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="/users/add">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <input type="text" name="name" class="form-control" placeholder="Enter full name" required/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" placeholder="user@store.com" required/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Min 6 characters" required minlength="6"/>
+          </div>
+          {% if session.get('role') == 'superadmin' %}
+          <div class="mb-1">
+            <label class="form-label">Role</label>
+            <select name="role" class="form-select">
+              <option value="staff">Staff</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          {% else %}
+          <input type="hidden" name="role" value="staff"/>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-purple"><i class="bi bi-person-check-fill me-1"></i>Create User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('userSearch').addEventListener('input', function () {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('#userTable tbody tr').forEach(row => {
+    if (!row.querySelector('td')) return;
+    row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Reports — RetailOS{% endblock %}
+{% block page_name %}<i class="bi bi-bar-chart-fill me-2" style="color:#A78BFA"></i>Analytics & Reports{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}"/>
+<style>
+  .chart-card { padding: 24px; border-radius: 18px; }
+  .chart-title { font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; color: rgba(255,255,255,.5); margin-bottom: 16px; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-title mb-1">Analytics & Reports</div>
+<p style="color:rgba(255,255,255,.45);font-size:.88rem;margin-bottom:28px">Live store performance overview</p>
+
+<!-- KPI row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">
+    <div class="glass stat-card" style="color:#A78BFA">
+      <div class="stat-icon" style="background:rgba(124,58,237,.2)"><i class="bi bi-currency-rupee" style="color:#A78BFA"></i></div>
+      <div class="stat-value" style="font-size:1.7rem">₹{{ "{:,.0f}".format(data.get('total_revenue',0)) }}</div>
+      <div class="stat-label">Total Revenue</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="glass stat-card" style="color:#34D399">
+      <div class="stat-icon" style="background:rgba(52,211,153,.2)"><i class="bi bi-receipt-cutoff" style="color:#34D399"></i></div>
+      <div class="stat-value">{{ data.get('total_orders',0) }}</div>
+      <div class="stat-label">Orders Placed</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="glass stat-card" style="color:#FBBF24">
+      <div class="stat-icon" style="background:rgba(251,191,36,.2)"><i class="bi bi-box-seam-fill" style="color:#FBBF24"></i></div>
+      <div class="stat-value">{{ data.get('total_products',0) }}</div>
+      <div class="stat-label">Products Listed</div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="glass stat-card" style="color:#F87171">
+      <div class="stat-icon" style="background:rgba(248,113,113,.2)"><i class="bi bi-exclamation-triangle-fill" style="color:#F87171"></i></div>
+      <div class="stat-value">{{ data.get('low_stock',0) }}</div>
+      <div class="stat-label">Low Stock Items</div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts row 1 -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="glass chart-card">
+      <div class="chart-title"><i class="bi bi-graph-up me-2"></i>Daily Revenue (Last 30 Days)</div>
+      <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="glass chart-card">
+      <div class="chart-title"><i class="bi bi-pie-chart-fill me-2"></i>Revenue by Category</div>
+      <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts row 2 -->
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="glass chart-card">
+      <div class="chart-title"><i class="bi bi-bar-chart-fill me-2"></i>Top 5 Products by Revenue</div>
+      <div class="chart-wrap"><canvas id="topProductChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="glass chart-card">
+      <div class="chart-title"><i class="bi bi-boxes me-2"></i>Stock Level by Category</div>
+      <div class="chart-wrap"><canvas id="stockChart"></canvas></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+const C = {
+  purple: '#A78BFA', pink: '#F9A8D4', green: '#34D399',
+  yellow: '#FBBF24', red: '#F87171', blue: '#60A5FA', teal: '#2DD4BF',
+  grid: 'rgba(255,255,255,0.07)', text: 'rgba(255,255,255,0.55)'
+};
+
+const defaults = {
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { labels: { color: C.text, font: { size: 11 } } } },
+  scales: {
+    x: { ticks: { color: C.text, font:{size:10} }, grid: { color: C.grid } },
+    y: { ticks: { color: C.text, font:{size:10}, callback: v => '₹'+v.toLocaleString() }, grid: { color: C.grid } }
+  }
+};
+
+// Revenue line chart
+new Chart(document.getElementById('revenueChart'), {
+  type: 'line',
+  data: {
+    labels: {{ data.get('daily_labels', [])|tojson }},
+    datasets: [{
+      label: 'Revenue (₹)',
+      data: {{ data.get('daily_values', [])|tojson }},
+      borderColor: C.purple,
+      backgroundColor: 'rgba(167,139,250,0.12)',
+      fill: true, tension: 0.4, pointRadius: 4,
+      pointBackgroundColor: C.purple, pointBorderColor: '#fff', pointBorderWidth: 2
+    }]
+  },
+  options: { ...defaults }
+});
+
+// Category doughnut
+new Chart(document.getElementById('categoryChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ data.get('category_labels', [])|tojson }},
+    datasets: [{
+      data: {{ data.get('category_values', [])|tojson }},
+      backgroundColor: [C.purple, C.pink, C.green, C.yellow, C.red, C.blue, C.teal],
+      borderColor: 'rgba(15,12,41,0.7)', borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom', labels: { color: C.text, font:{size:11}, padding:12 } }
+    }
+  }
+});
+
+// Top products bar
+new Chart(document.getElementById('topProductChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ data.get('top_product_labels', [])|tojson }},
+    datasets: [{
+      label: 'Revenue (₹)',
+      data: {{ data.get('top_product_values', [])|tojson }},
+      backgroundColor: [C.purple, C.blue, C.green, C.yellow, C.pink],
+      borderRadius: 8, borderSkipped: false
+    }]
+  },
+  options: { ...defaults, plugins: { legend: { display: false } } }
+});
+
+// Stock bar (horizontal)
+new Chart(document.getElementById('stockChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ data.get('cat_stock_labels', [])|tojson }},
+    datasets: [{
+      label: 'Units in Stock',
+      data: {{ data.get('cat_stock_values', [])|tojson }},
+      backgroundColor: 'rgba(52,211,153,0.25)',
+      borderColor: C.green, borderWidth: 2, borderRadius: 8
+    }]
+  },
+  options: {
+    ...defaults,
+    indexAxis: 'y',
+    scales: {
+      x: { ticks: { color: C.text, font:{size:10} }, grid: { color: C.grid } },
+      y: { ticks: { color: C.text, font:{size:10} }, grid: { display: false } }
+    },
+    plugins: { legend: { display: false } }
+  }
+});
+</script>
+{% endblock %}
